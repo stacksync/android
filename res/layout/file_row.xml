@@ -1,0 +1,54 @@
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@drawable/file_selector"
+    android:padding="5dip" >
+	
+    <!-- Filename -->
+    <TextView
+        android:id="@+id/filename"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/imgicon"
+        android:layout_toRightOf="@+id/imgicon"
+        android:layout_marginTop="1dip"
+        android:layout_marginLeft="10dip"
+        android:text="This_is_a_filename.pdf"
+        android:textColor="#040404"
+        android:textSize="16dip"
+        android:textStyle="bold"
+        android:typeface="sans" />
+    
+    
+    <!-- Fileinfo -->
+    <TextView
+        android:id="@+id/fileinfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/filename"
+        android:layout_toRightOf="@+id/imgicon"
+        android:layout_marginTop="1dip"
+        android:layout_marginLeft="10dip"
+        android:text="547 KB"
+        android:textColor="#808080"
+        android:textSize="14dip"
+        android:typeface="sans" />
+    
+    <!-- Rightend Arrow -->    
+     <ImageView android:layout_width="wrap_content"
+     	android:layout_height="wrap_content"
+     	android:src="@drawable/arrow"
+     	android:layout_alignParentRight="true"
+     	android:layout_centerVertical="true"/>
+
+     <ImageView
+         android:id="@+id/imgicon"
+         android:layout_width="45dip"
+         android:layout_height="45dip"
+         android:layout_alignParentLeft="true"
+         android:layout_alignParentTop="true"
+         android:src="@drawable/ic_launcher" />
+     
+</RelativeLayout>
