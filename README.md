@@ -44,7 +44,7 @@ to use other storage back-ends, such as a FTP server or S3.
 
 # Android client
 
-Unlike the desktop client, the mobile app will not synchronize a local folder into a remote
+Unlike the [desktop client](https://github.com/stacksync/desktop), the mobile app will not synchronize a local folder into a remote
 repository. Synchronization would require the application to keep a local copy of the
 repository in the local file system, which is not feasible due to the storage limitations present on
 mobile devices.
