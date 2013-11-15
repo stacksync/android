@@ -49,7 +49,7 @@ repository. Synchronization would require the application to keep a local copy o
 repository in the local file system, which is not feasible due to the storage limitations present on
 mobile devices.
 
-Therefore, this client communicates with StackSync through an API. 
+Therefore, this client communicates with StackSync through an API. (We will upload the API soon!)
 
 
 
