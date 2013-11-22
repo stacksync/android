@@ -2,6 +2,8 @@ package com.stacksync.android;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
@@ -140,10 +142,24 @@ public class SettingsActivity extends PreferenceActivity implements OnPreference
 			return true;
 		}
 		else if (preference == mButtonLogout) {
+			
 			CacheManager cacheManager = CacheManager.getInstance(this);
 			cacheManager.clearCache();
-			setResult(Constants.RESULT_LOGOUT);
-			finish();
+			
+			DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+			    public void onClick(DialogInterface dialog, int which) {
+			        if (which == DialogInterface.BUTTON_POSITIVE){
+			        	setResult(Constants.RESULT_LOGOUT);
+						finish();
+			        }
+			    }
+			};
+
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle("Are you sure?").setMessage("Are you sure you want to unlink this device from your StackSync account?").setPositiveButton("Unlink", dialogClickListener)
+			    .setNegativeButton("Cancel", dialogClickListener).show();
+			
+			
 			return true;
 		}
 
