@@ -1,6 +1,0 @@
-<resources>
-
-    <style name="AppTheme" parent="android:Theme.Light" />
-    <color name="header_color">#777</color>
-
-</resources>
