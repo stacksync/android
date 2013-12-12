@@ -16,12 +16,18 @@ repositories {
 }
 
 dependencies {
+    compile 'com.android.support:support-v4:18.0.+'
     compile 'com.actionbarsherlock:actionbarsherlock:4.4.0@aar'
-    compile files('libs/android-support-v13.jar')
+    //compile files('libs/android-support-v13.jar')
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
 }
 
 android {
-    buildToolsVersion "17.0.0"
-    compileSdkVersion 17
+    buildToolsVersion "19.0.0"
+    compileSdkVersion 19
+
+    defaultConfig {
+        minSdkVersion 7
+        targetSdkVersion 19
+    }
 }
