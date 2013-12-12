@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/title_settings"
+    android:layout_height="fill_parent"
+    android:layout_width="fill_parent">
+
+    <PreferenceCategory android:title="User information" >
+
+        <Preference
+            android:enabled="false"
+            android:key="server_url"
+            android:summary="Unknown"
+            android:title="Server URL" />
+
+        <Preference
+            android:enabled="false"
+            android:key="username"
+            android:summary="Unknown"
+            android:title="User" />
+
+        <Preference
+            android:key="logout"
+            android:title="Unlink device from StackSync" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="About" >
+
+        <Preference
+            android:enabled="false"
+            android:key="appversion"
+            android:summary="Unknown"
+            android:title="App version" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Advanced features" >
+
+        <Preference
+            android:enabled="false"
+            android:key="cache_size"
+            android:summary="Unknown"
+            android:title="Cache" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/cache_limit"
+            android:entryValues="@array/cache_limit_values"
+            android:key="cache_limit"
+            android:title="Cache limit" />
+
+        <Preference
+            android:key="cache_clear"
+            android:title="Clear cache" />
+    </PreferenceCategory>
+
+</PreferenceScreen>
