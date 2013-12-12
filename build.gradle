@@ -18,8 +18,11 @@ repositories {
 dependencies {
     compile 'com.android.support:support-v4:18.0.+'
     compile 'com.actionbarsherlock:actionbarsherlock:4.4.0@aar'
+    compile 'com.github.chrisbanes.actionbarpulltorefresh:library:+'
+    compile 'com.github.chrisbanes.actionbarpulltorefresh:extra-abs:+'
     //compile files('libs/android-support-v13.jar')
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
+
 }
 
 android {

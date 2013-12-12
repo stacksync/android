@@ -57,7 +57,11 @@ import com.stacksync.android.task.ShareFileTask;
 import com.stacksync.android.task.UploadFileTask;
 import com.stacksync.android.utils.Constants;
 
-public class MainActivity extends SherlockActivity implements SearchView.OnQueryTextListener {
+import uk.co.senab.actionbarpulltorefresh.extras.actionbarsherlock.PullToRefreshLayout;
+import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
+import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
+
+public class MainActivity extends SherlockActivity implements SearchView.OnQueryTextListener, OnRefreshListener {
 
 	private static String TAG = MainActivity.class.getName();
 
@@ -97,11 +101,13 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	// Flags
 	private boolean isInitialized;
 
+    private PullToRefreshLayout mPullToRefreshLayout;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		isInitialized = false;
+    	isInitialized = false;
 
 		StacksyncClient client = StacksyncApp.getClient(this);
 		if (client.isLoggedIn()) {
@@ -143,6 +149,20 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 		LayoutInflater inflater = getLayoutInflater();
 		View emptyView = inflater.inflate(R.layout.empty_view_layout, null);
 		addContentView(emptyView, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
+
+
+        // Now find the PullToRefreshLayout to setup
+        mPullToRefreshLayout = (PullToRefreshLayout) findViewById(R.id.main_layout);
+
+        // Now setup the PullToRefreshLayout
+        ActionBarPullToRefresh.from(MainActivity.this)
+                // Mark All Children as pullable
+                .allChildrenArePullable()
+                        // Set the OnRefreshListener
+                .listener(MainActivity.this)
+                        // Finally commit the setup to our PullToRefreshLayout
+                .setup(mPullToRefreshLayout);
+
 
 		navigation = new ArrayList<Pair<String, String>>();
 
@@ -254,27 +274,6 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 		cacheManager.setCacheLimit(settings.getLong("cache_limit", 0));
 	}
 
-	/* Creating the Hashmap for the row */
-	/*
-	 * private ArrayList<HashMap<String, String>>
-	 * createGroupList(ArrayList<ArrayList<HashMap<String, Object>>> content) {
-	 * 
-	 * ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String,
-	 * String>>();
-	 * 
-	 * int size = content.size();
-	 * 
-	 * if (size == 1) { HashMap<String, String> m = new HashMap<String,
-	 * String>(); m.put("Group Item", "FILES"); // the key and it's value.
-	 * result.add(m); } else if (size == 2) { HashMap<String, String> m = new
-	 * HashMap<String, String>(); m.put("Group Item", "FOLDERS"); // the key and
-	 * it's value. result.add(m);
-	 * 
-	 * m = new HashMap<String, String>(); m.put("Group Item", "FILES"); // the
-	 * key and it's value. result.add(m); }
-	 * 
-	 * return result; }
-	 */
 	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
 
@@ -358,9 +357,12 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getSupportMenuInflater();
 		inflater.inflate(R.menu.activity_main, menu);
+
+        /*
 		SearchView searchView = (SearchView) menu.findItem(R.id.menu_search).getActionView();
 		searchView.setOnQueryTextListener(this);
 		searchView.setQueryHint(getResources().getString(R.string.search_hint));
+        */
 
 		return true;
 	}
@@ -373,9 +375,6 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 			return true;
 		} else if (item.getItemId() == android.R.id.home) {
 			folderUp();
-			return true;
-		} else if (item.getItemId() == R.id.menu_refresh) {
-			listDirectory();
 			return true;
 		} else if (item.getItemId() == R.id.menu_upload) {
 			onUploadFileClick();
@@ -507,7 +506,9 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	}
 
 	public void onReceiveListResponse(ListResponse response) {
-	
+
+        mPullToRefreshLayout.setRefreshComplete();
+
 		if (response.getSucced()) {
 
 			// display only the metadata if we are on the target folder
@@ -773,4 +774,10 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+    @Override
+    public void onRefreshStarted(View view) {
+        listDirectory();
+    }
+
 }
