@@ -17,7 +17,7 @@
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="15dp"
-            android:src="@drawable/logo_stacksync" />
+            android:src="@drawable/stacksync_logo_new" />
         
         <EditText
             android:id="@+id/loginHost"

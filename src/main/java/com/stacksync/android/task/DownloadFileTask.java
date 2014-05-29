@@ -54,7 +54,7 @@ public class DownloadFileTask extends MyAsyncTask<String, Integer, Boolean> {
 				intent.setDataAndType(Uri.fromFile(localFile), mimetype);
 
 				NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getContext())
-						.setSmallIcon(R.drawable.logo).setContentTitle(filename)
+						.setSmallIcon(R.drawable.ic_launcher).setContentTitle(filename)
 						.setContentText("Download completed. Click to open.").setAutoCancel(true);
 
 				TaskStackBuilder stackBuilder = TaskStackBuilder.create(getContext());
