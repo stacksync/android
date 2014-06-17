@@ -108,7 +108,15 @@ public class StacksyncClient {
 		return isLoggedin;
 	}
 
-	public LoginResponse login() throws UnexpectedStatusCodeException,
+    public RequestTokenResponse login() throws NoInternetConnectionException {
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+
+        return null;
+    }
+
+	public LoginResponse login2() throws UnexpectedStatusCodeException,
 			UnauthorizedException, UnexpectedResponseException, IOException, NoInternetConnectionException {
 
 		if (!Utils.isNetworkConnected(context)) {
