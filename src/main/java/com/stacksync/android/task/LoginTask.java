@@ -3,9 +3,9 @@ package com.stacksync.android.task;
 import com.stacksync.android.LoginActivity;
 import com.stacksync.android.MainActivity;
 import com.stacksync.android.StacksyncApp;
+import com.stacksync.android.api.GenericResponse;
 import com.stacksync.android.api.LoginResponse;
 import com.stacksync.android.api.StacksyncClient;
-import com.stacksync.android.exceptions.APIException;
 
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -24,7 +24,7 @@ public class LoginTask extends AsyncTask<String, Integer, LoginResponse> {
 	}
 
 	@Override
-	protected void onPostExecute(LoginResponse result) {
+	protected void onPostExecute(GenericResponse result) {
 		progressBar.dismiss();
 
 		if (context instanceof MainActivity) {
@@ -52,14 +52,15 @@ public class LoginTask extends AsyncTask<String, Integer, LoginResponse> {
 		LoginResponse result;
 
 		try {
-			result = client.login();
+			client.getRequestToken();
+            client.authorize(email, password);
+            client.getAccessToken();
 
-		} catch (APIException e) {
-			Log.e(TAG, e.toString(), e);
-			result = new LoginResponse();
-			result.setSucced(false);
-			result.setStatusCode(e.getStatusCode());
-			result.setMessage(e.getMessage());
+            result = new LoginResponse();
+            result.setSucced(true);
+            result.setAccessTokenKey(client.getConsumer().getToken());
+            result.setAccessTokenSecret(client.getConsumer().getTokenSecret());
+
 		} catch (Exception e) {
 			Log.e(TAG, e.toString(), e);
 			result = new LoginResponse();

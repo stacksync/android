@@ -2,41 +2,36 @@ package com.stacksync.android.api;
 
 public class LoginResponse extends GenericResponse {
 
-	private String storageUrl;
-	private String authToken;
+	private String accessTokenKey;
+	private String accessTokenSecret;
 
 	public LoginResponse() {
 		super(false, 0, "");
 
-		this.storageUrl = "";
-		this.authToken = "";
+		this.accessTokenKey = "";
+		this.accessTokenSecret = "";
 	}
 
-	public LoginResponse(boolean succed, int statusCode, String message) {
-		super(succed, statusCode, message);
+	public LoginResponse(boolean succeed, int statusCode, String message) {
+		super(succeed, statusCode, message);
 		
-		this.storageUrl = "";
-		this.authToken = "";
-	}
-	
-	public LoginResponse(boolean succed, int statusCode, String message, String storageUrl,
-			String authToken) {
-		super(succed, statusCode, message);
-		
-		this.storageUrl = storageUrl;
-		this.authToken = authToken;
+		this.accessTokenKey = "";
+		this.accessTokenSecret = "";
 	}
 
-	public String getStorageURL() {
-		return storageUrl;
-	}
-	
-	public void setStorageURL(String storageUrl) {
-		this.storageUrl = storageUrl;
-	}
+    public String getAccessTokenSecret() {
+        return accessTokenSecret;
+    }
 
-	public String getAuthToken() {
-		return authToken;
-	}
+    public void setAccessTokenSecret(String accessTokenSecret) {
+        this.accessTokenSecret = accessTokenSecret;
+    }
 
+    public String getAccessTokenKey() {
+        return accessTokenKey;
+    }
+
+    public void setAccessTokenKey(String accessTokenKey) {
+        this.accessTokenKey = accessTokenKey;
+    }
 }

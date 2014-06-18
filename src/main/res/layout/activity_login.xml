@@ -28,7 +28,7 @@
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
             android:layout_marginTop="20dp"
-            android:hint="Auth URL" 
+            android:hint="API URL"
             >
             <requestFocus />
         </EditText>
@@ -42,7 +42,7 @@
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
             android:layout_marginTop="10dp"
-            android:hint="Username" >
+            android:hint="Email" >
 		</EditText>
         <EditText
             android:id="@+id/loginPassword"

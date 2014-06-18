@@ -1,7 +1,6 @@
 package com.stacksync.android;
 
-import com.stacksync.android.api.LoginResponse;
-import com.stacksync.android.api.StacksyncClient;
+import com.stacksync.android.api.GenericResponse;
 import com.stacksync.android.task.LoginTask;
 import com.stacksync.android.utils.Constants;
 
@@ -39,12 +38,8 @@ public class LoginActivity extends Activity {
 				
 				if (Utils.validateLoginFields(authUrl, username, password)) {
 
-					StacksyncClient client = StacksyncApp.getClient(LoginActivity.this);
-					client.setAuthUrl(authUrl);
-					client.setUsername(username);
-					client.setPassword(password);
-					
-					AsyncTask<String, Integer, LoginResponse> loginTask = new LoginTask(
+
+					AsyncTask<String, Integer, GenericResponse> loginTask = new LoginTask(
 							LoginActivity.this);
 					loginTask.execute();
 
@@ -57,10 +52,15 @@ public class LoginActivity extends Activity {
 	}
 
 
-	public void onReceiveLoginResponse(LoginResponse loginResponse) {
+	public void onReceiveRequestTokenResponse(GenericResponse loginResponse) {
 
 		if (loginResponse.getSucced()) {
-			
+
+
+
+
+
+
 			SharedPreferences settings = getSharedPreferences(Constants.PREFS_NAME, 0);
 			SharedPreferences.Editor editor = settings.edit();
 			editor.putString("auth_url", authUrl);
