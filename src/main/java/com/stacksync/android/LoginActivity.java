@@ -58,6 +58,10 @@ public class LoginActivity extends Activity {
 			SharedPreferences.Editor editor = settings.edit();
 			editor.putString("access_token_key", loginResponse.getAccessTokenKey());
 			editor.putString("access_token_secret", loginResponse.getAccessTokenSecret());
+            editor.putString("email", email);
+            editor.putString("api_url", apiUrl);
+
+
 			editor.commit();
 			
 			Intent myIntent = new Intent(LoginActivity.this, MainActivity.class);

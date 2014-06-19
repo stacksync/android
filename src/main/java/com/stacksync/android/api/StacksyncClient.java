@@ -161,15 +161,10 @@ public class StacksyncClient {
            while ((lineAux = rd.readLine()) != null) {
                line += lineAux;
            }
-           URI uri = new URI(line);
-           List<NameValuePair> result;
-           result = URLEncodedUtils.parse(uri, "UTF-8");
+           line = "http://www.stacksync.com/?"+line;
+           Uri uri=Uri.parse(line);
+           verifier = uri.getQueryParameter("verifier");
 
-           for (NameValuePair a : result) {
-               if (a.getName() == "verifier") {
-                   verifier = a.getValue();
-               }
-           }
        }
        else{
           throw new OAuthNotAuthorizedException();
@@ -187,6 +182,7 @@ public class StacksyncClient {
         }
         provider.retrieveAccessToken(consumer, verifier.trim());
 
+        isLoggedin = true;
     }
 
     public void logout() {

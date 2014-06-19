@@ -63,7 +63,7 @@ public class SettingsActivity extends PreferenceActivity implements OnPreference
 	private void setServerUrl() {
 
 		SharedPreferences settings = getSharedPreferences(Constants.PREFS_NAME, 0);
-		String serverUrl = settings.getString("auth_url", "Not set");
+		String serverUrl = settings.getString("api_url", "Not set");
 
 		mButtonServerUrl.setSummary(serverUrl);
 	}
@@ -71,7 +71,7 @@ public class SettingsActivity extends PreferenceActivity implements OnPreference
 	private void setUsername() {
 
 		SharedPreferences settings = getSharedPreferences(Constants.PREFS_NAME, 0);
-		String username = settings.getString("username", "Not set");
+		String username = settings.getString("email", "Not set");
 
 		mButtonUsername.setSummary(username);
 	}
