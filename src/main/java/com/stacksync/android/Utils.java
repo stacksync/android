@@ -100,18 +100,31 @@ public class Utils {
 		return date;
 	}
 
-	public static boolean validateLoginFields(String authUrl, String username, String password) {
+	public static boolean validateTokenFields(String accessTokenKey, String accessTokenSecret) {
 
-		if (authUrl == null || username == null || password == null) {
+		if (accessTokenKey == null || accessTokenSecret == null) {
 			return false;
-		} else if (!authUrl.startsWith("http://") && !authUrl.startsWith("https://")) {
+		} else if (accessTokenKey == "") {
 			return false;
-		} else if (username == "") {
-			return false;
-		} else if (password == "") {
+		} else if (accessTokenSecret == "") {
 			return false;
 		}
 
 		return true;
 	}
+
+    public static boolean validateLoginFields(String apiUrl, String email, String password) {
+
+        if (apiUrl == null || email == null || password == null) {
+            return false;
+        } else if (!apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
+            return false;
+        } else if (email == "") {
+            return false;
+        } else if (password == "") {
+            return false;
+        }
+
+        return true;
+    }
 }

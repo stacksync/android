@@ -24,6 +24,10 @@ import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
+import oauth.signpost.exception.OAuthCommunicationException;
+import oauth.signpost.exception.OAuthExpectationFailedException;
+import oauth.signpost.exception.OAuthMessageSignerException;
+
 public class OpenFileTask extends MyAsyncTask<String, Integer, Boolean> {
 
 	private static String TAG = OpenFileTask.class.getName();
@@ -131,9 +135,18 @@ public class OpenFileTask extends MyAsyncTask<String, Integer, Boolean> {
 			message = e.toString();
 		} catch (CancelledTaskException e) {
 			Log.w(TAG, e.toString(), e);
-		}
+		} catch (OAuthExpectationFailedException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        } catch (OAuthCommunicationException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        } catch (OAuthMessageSignerException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        }
 
-		return result;
+        return result;
 	}
 
 	@Override

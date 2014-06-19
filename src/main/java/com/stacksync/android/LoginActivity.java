@@ -1,6 +1,6 @@
 package com.stacksync.android;
 
-import com.stacksync.android.api.GenericResponse;
+import com.stacksync.android.api.LoginResponse;
 import com.stacksync.android.task.LoginTask;
 import com.stacksync.android.utils.Constants;
 
@@ -17,8 +17,8 @@ import android.widget.Toast;
 
 public class LoginActivity extends Activity {
 
-	private String authUrl;
-	private String username;
+	private String apiUrl;
+	private String email;
 	private String password;
 
 	@Override
@@ -32,15 +32,14 @@ public class LoginActivity extends Activity {
 		btnLogin.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
 
-				authUrl = ((EditText) findViewById(R.id.loginHost)).getText().toString();
-				username = ((EditText) findViewById(R.id.loginUser)).getText().toString();
+				apiUrl = ((EditText) findViewById(R.id.loginHost)).getText().toString();
+				email = ((EditText) findViewById(R.id.loginUser)).getText().toString();
 				password = ((EditText) findViewById(R.id.loginPassword)).getText().toString();
 				
-				if (Utils.validateLoginFields(authUrl, username, password)) {
+				if (Utils.validateLoginFields(apiUrl, email, password)) {
 
-
-					AsyncTask<String, Integer, GenericResponse> loginTask = new LoginTask(LoginActivity.this);
-					loginTask.execute();
+                    AsyncTask<String, Integer, LoginResponse> loginTask = new LoginTask(LoginActivity.this);
+					loginTask.execute(apiUrl, email, password);
 
 				} else {
 					Toast.makeText(LoginActivity.this, "Please, fill all fields properly.",
@@ -51,20 +50,14 @@ public class LoginActivity extends Activity {
 	}
 
 
-	public void onReceiveRequestTokenResponse(GenericResponse loginResponse) {
+	public void onReceiveLoginResponse(LoginResponse loginResponse) {
 
 		if (loginResponse.getSucced()) {
 
-
-
-
-
-
 			SharedPreferences settings = getSharedPreferences(Constants.PREFS_NAME, 0);
 			SharedPreferences.Editor editor = settings.edit();
-			editor.putString("auth_url", authUrl);
-			editor.putString("username", username);
-			editor.putString("password", password);
+			editor.putString("access_token_key", loginResponse.getAccessTokenKey());
+			editor.putString("access_token_secret", loginResponse.getAccessTokenSecret());
 			editor.commit();
 			
 			Intent myIntent = new Intent(LoginActivity.this, MainActivity.class);

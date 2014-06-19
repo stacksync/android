@@ -23,6 +23,10 @@ import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 import android.widget.Toast;
 
+import oauth.signpost.exception.OAuthCommunicationException;
+import oauth.signpost.exception.OAuthExpectationFailedException;
+import oauth.signpost.exception.OAuthMessageSignerException;
+
 public class DownloadFileTask extends MyAsyncTask<String, Integer, Boolean> {
 
 	private static String TAG = DownloadFileTask.class.getName();
@@ -134,9 +138,18 @@ public class DownloadFileTask extends MyAsyncTask<String, Integer, Boolean> {
 		} catch (UnauthorizedException e) {
 			Log.e(TAG, e.toString(), e);
 			message = e.toString();
-		}
+		} catch (OAuthExpectationFailedException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        } catch (OAuthCommunicationException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        } catch (OAuthMessageSignerException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        }
 
-		return result;
+        return result;
 	}
 
 	@Override

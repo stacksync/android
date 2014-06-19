@@ -24,7 +24,7 @@ public class LoginTask extends AsyncTask<String, Integer, LoginResponse> {
 	}
 
 	@Override
-	protected void onPostExecute(GenericResponse result) {
+	protected void onPostExecute(LoginResponse result) {
 		progressBar.dismiss();
 
 		if (context instanceof MainActivity) {
@@ -47,13 +47,17 @@ public class LoginTask extends AsyncTask<String, Integer, LoginResponse> {
 	@Override
 	protected LoginResponse doInBackground(String... params) {
 
+        String apiUrl = params[0];
+        String email = params[1];
+        String password = params[2];
+
 		StacksyncClient client = StacksyncApp.getClient(context);
 
 		LoginResponse result;
 
 		try {
 			client.getRequestToken();
-            client.authorize(params[1], params[2]);
+            client.authorize(email, password);
             client.getAccessToken();
 
             result = new LoginResponse();

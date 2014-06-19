@@ -41,7 +41,6 @@ import com.actionbarsherlock.app.SherlockActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
-import com.actionbarsherlock.view.Window;
 import com.actionbarsherlock.widget.SearchView;
 import com.stacksync.android.api.ListResponse;
 import com.stacksync.android.api.LoginResponse;
@@ -120,15 +119,12 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 
 			// Restore preferences
 			SharedPreferences settings = getSharedPreferences(Constants.PREFS_NAME, 0);
-			String authUrl = settings.getString("auth_url", "");
-			String username = settings.getString("username", "");
-			String password = settings.getString("password", "");
+			String accessTokenKey = settings.getString("access_token_key", "");
+			String accessTokenSecret = settings.getString("access_token_secret", "");
 
-			if (Utils.validateLoginFields(authUrl, username, password)) {
+			if (Utils.validateTokenFields(accessTokenKey, accessTokenSecret)) {
 
-				client.setAuthUrl(authUrl);
-				client.setUsername(username);
-				client.setPassword(password);
+				client.getConsumer().setTokenWithSecret(accessTokenKey, accessTokenSecret);
 
 				if (!isInitialized)
 					initialize();
