@@ -53,7 +53,7 @@ public class LoginTask extends AsyncTask<String, Integer, LoginResponse> {
 
 		try {
 			client.getRequestToken();
-            client.authorize(email, password);
+            client.authorize(params[1], params[2]);
             client.getAccessToken();
 
             result = new LoginResponse();

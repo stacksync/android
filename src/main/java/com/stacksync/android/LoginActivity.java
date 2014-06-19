@@ -39,8 +39,7 @@ public class LoginActivity extends Activity {
 				if (Utils.validateLoginFields(authUrl, username, password)) {
 
 
-					AsyncTask<String, Integer, GenericResponse> loginTask = new LoginTask(
-							LoginActivity.this);
+					AsyncTask<String, Integer, GenericResponse> loginTask = new LoginTask(LoginActivity.this);
 					loginTask.execute();
 
 				} else {
