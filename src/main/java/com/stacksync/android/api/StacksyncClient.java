@@ -78,6 +78,7 @@ public class StacksyncClient {
 
     private StacksyncConsumer consumer;
     private String authorizeUrl;
+    private String apiUrl = "http://api.stacksync.com:8080";
     private String verifier;
     private OAuthProvider provider;
 
@@ -228,14 +229,12 @@ public class StacksyncClient {
 
         JSONObject jObject = null;
 
-        HttpGet method = null;
-
-        String path = "/folder/"+folderId.toString();
+        String path = String.format("/folder/%s/contents", folderId.toString());
 
 
         String url = Utils.buildUrl("storageUrl", path, null);
 
-        method = new HttpGet(url);
+        HttpGet method = new HttpGet(url);
         /*Pregunta Adri*/
         method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
         method.setHeader(FilesConstants.STACKSYNC_API, "v2");
@@ -295,12 +294,12 @@ public class StacksyncClient {
         File file = new File(saveToPath);
         // TODO: check if we have read and write permission
 
-        String path = "/file/"+fileId.toString()+"/data";
+        String path = String.format("/file/%s/data", fileId.toString());
 
 //        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
 //        params.add(new Pair<String, String>("file_id", fileId));
         // params.add(new Pair<String, String>("version", xxxx));
-        String urlString = Utils.buildUrl("storageURL", path, null);
+        String urlString = Utils.buildUrl(apiUrl, path, null);
 
         URL url = new URL(urlString);
 
@@ -309,17 +308,15 @@ public class StacksyncClient {
 
         // Open a connection to that URL.
         HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
-        consumer.sign(ucon);
+
         ucon.setRequestMethod("GET");
-        ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, "authToken");
         ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "v2");
 
         // this timeout affects how long it takes for the app to realize
-        // there's
-        // a connection problem
+        // there's a connection problem
         ucon.setReadTimeout(Constants.TIMEOUT_CONNECTION);
-        // ucon.setConnectTimeout(TIMEOUT_SOCKET);
 
+        consumer.sign(ucon);
         ucon.connect();
 
         int statusCode = ucon.getResponseCode();
@@ -377,7 +374,7 @@ public class StacksyncClient {
 
     public void uploadFileSmart(MyAsyncTask<Object, Integer, Boolean> task, Uri selectedFile, String parentId)
             throws IOException, NoInternetConnectionException, NotLoggedInException, UnexpectedStatusCodeException,
-            FileNotFoundException, UnauthorizedException {
+            UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException {
 
         if (!Utils.isNetworkConnected(context)) {
             throw new NoInternetConnectionException();
@@ -416,10 +413,9 @@ public class StacksyncClient {
 		}
 		*/
 
-        String path = "/stacksync/files";
+        String path = "/file";
         List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-        params.add(new Pair<String, String>("file_name", fileName));
-        params.add(new Pair<String, String>("overwrite", Boolean.TRUE.toString()));
+        params.add(new Pair<String, String>("name", fileName));
 
         if (parentId != null) {
             params.add(new Pair<String, String>("parent", parentId));
@@ -435,9 +431,8 @@ public class StacksyncClient {
         // Open a connection to that URL.
         HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
 
-        ucon.setRequestMethod("PUT");
-        ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, "authToken");
-        ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "True");
+        ucon.setRequestMethod("POST");
+        ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "v2");
 
         // this timeout affects how long it takes for the app to realize
         // there's a connection problem
@@ -445,6 +440,7 @@ public class StacksyncClient {
 
         ucon.setDoOutput(true);
 
+        consumer.sign(ucon);
         ucon.connect();
 
         OutputStream os = ucon.getOutputStream();
