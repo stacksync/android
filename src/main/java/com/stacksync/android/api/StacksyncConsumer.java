@@ -5,14 +5,14 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.security.SecureRandom;
 
-import oauth.signpost.AbstractOAuthConsumer;
-import oauth.signpost.OAuthProviderListener;
 import oauth.signpost.basic.HttpURLConnectionRequestAdapter;
+import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer;
+
+import oauth.signpost.commonshttp.HttpRequestAdapter;
 import oauth.signpost.http.HttpRequest;
-import oauth.signpost.http.HttpResponse;
 
 
-public class StacksyncConsumer extends AbstractOAuthConsumer {
+public class StacksyncConsumer extends CommonsHttpOAuthConsumer {
 
     private static final long serialVersionUID = 1L;
     private SecureRandom random = new SecureRandom();
@@ -23,11 +23,20 @@ public class StacksyncConsumer extends AbstractOAuthConsumer {
 
     @Override
     protected HttpRequest wrap(Object request) {
-        if (!(request instanceof HttpURLConnection)) {
-            throw new IllegalArgumentException(
-                    "The default consumer expects requests of type java.net.HttpURLConnection");
+        if (request instanceof org.apache.http.HttpRequest) {
+            return new HttpRequestAdapter((org.apache.http.client.methods.HttpUriRequest) request);
+
         }
-        return new HttpURLConnectionRequestAdapter((HttpURLConnection) request);
+        else if (request instanceof HttpURLConnection) {
+            return new HttpURLConnectionRequestAdapter((HttpURLConnection) request);
+        }
+        else{
+            throw new IllegalArgumentException(
+                    "This consumer expects requests of type "
+                            + org.apache.http.HttpRequest.class.getCanonicalName());
+        }
+
+
     }
 
     @Override

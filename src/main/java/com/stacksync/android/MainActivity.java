@@ -70,7 +70,6 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	public static final String KEY_FILEINFO = "fileinfo";
 	public static final String KEY_ICON = "imgicon";
 	public static final String KEY_ISFOLDER = "isfolder";
-	public static final String KEY_PATH = "path";
 	public static final String KEY_MIMETYPE = "mimetype";
 
 	// Menu
@@ -125,6 +124,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 			if (Utils.validateTokenFields(accessTokenKey, accessTokenSecret)) {
 
 				client.getConsumer().setTokenWithSecret(accessTokenKey, accessTokenSecret);
+                client.setIsLoggedIn(true);
 
 				if (!isInitialized)
 					initialize();
@@ -537,7 +537,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	}
 
 	private String getCurrentFileId() {
-		String fileId = null;
+		String fileId = "0";
 
 		if (!navigation.isEmpty()) {
 			Pair<String, String> workingFolder = navigation.get(navigation.size() - 1);

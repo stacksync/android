@@ -58,7 +58,7 @@ public class FileManager {
 
 		clearContent();
 
-		String name, file_id, path, status, mimetype;
+		String name, file_id, status, mimetype;
 		Long size;
 		Boolean isFolder;
 		String clientModified;
@@ -78,9 +78,9 @@ public class FileManager {
 
 					JSONObject jArrayObject = contents.getJSONObject(i);
 
-					file_id = jArrayObject.getString("file_id");
+					file_id = jArrayObject.getString("id");
 					name = jArrayObject.getString("filename");
-					clientModified = jArrayObject.getString("client_modified");
+					clientModified = jArrayObject.getString("modified_at");
 					Date dateClientModified = Utils.convertStringToDate(clientModified);
 
 					CharSequence formatedClientModified = "modified "
@@ -94,7 +94,6 @@ public class FileManager {
 					}
 
 					isFolder = jArrayObject.getBoolean("is_folder");
-					path = jArrayObject.getString("path");
 					status = jArrayObject.getString("status");
 
 					if (jArrayObject.has("mimetype")) {
@@ -112,7 +111,6 @@ public class FileManager {
 						HashMap<String, Object> child = new HashMap<String, Object>();
 						child.put(MainActivity.KEY_FILEID, file_id);
 						child.put(MainActivity.KEY_FILENAME, name);
-						child.put(MainActivity.KEY_PATH, path);
 						child.put(MainActivity.KEY_MIMETYPE, mimetype);
 
 						if (isFolder) {

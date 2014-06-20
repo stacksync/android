@@ -3,6 +3,7 @@ package com.stacksync.android.task;
 import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONException;
 
 import com.stacksync.android.MainActivity;
 import com.stacksync.android.StacksyncApp;
@@ -90,6 +91,9 @@ public class CreateFolderTask extends AsyncTask<String, Integer, Boolean> {
             Log.e(TAG, e.toString(), e);
             message = e.toString();
         } catch (OAuthMessageSignerException e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        } catch (JSONException e) {
             Log.e(TAG, e.toString(), e);
             message = e.toString();
         }

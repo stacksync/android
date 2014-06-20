@@ -20,13 +20,11 @@ import com.stacksync.android.utils.Constants;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
@@ -43,15 +41,15 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URI;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +61,7 @@ import javax.net.ssl.SSLSession;
 import oauth.signpost.OAuth;
 import oauth.signpost.OAuthProvider;
 import oauth.signpost.basic.DefaultOAuthProvider;
+import oauth.signpost.commonshttp.CommonsHttpOAuthProvider;
 import oauth.signpost.exception.OAuthCommunicationException;
 import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
@@ -74,11 +73,11 @@ public class StacksyncClient {
 
     private Context context;
     private HttpClient client;
-    private boolean isLoggedin = false;
+    private boolean isLoggedIn = false;
 
     private StacksyncConsumer consumer;
     private String authorizeUrl;
-    private String apiUrl = "http://api.stacksync.com:8080";
+    private String apiUrl = "http://api.stacksync.com:8080/v1";
     private String verifier;
     private OAuthProvider provider;
 
@@ -106,7 +105,7 @@ public class StacksyncClient {
 
         consumer = new StacksyncConsumer("b3af4e669daf880fb16563e6f36051b105188d413",
                 "c168e65c18d75b35d8999b534a3776cf");
-        provider = new DefaultOAuthProvider(
+        provider = new CommonsHttpOAuthProvider(
                 "http://api.stacksync.com:8080/oauth/request_token",
                 "http://api.stacksync.com:8080/oauth/access_token",
                 "http://api.stacksync.com:8080/oauth/authorize");
@@ -116,7 +115,11 @@ public class StacksyncClient {
 
 
     public boolean isLoggedIn() {
-        return isLoggedin;
+        return isLoggedIn;
+    }
+
+    public void setIsLoggedIn(boolean isLoggedIn) {
+        this.isLoggedIn = isLoggedIn;
     }
 
     public StacksyncConsumer getConsumer() {
@@ -182,18 +185,18 @@ public class StacksyncClient {
         }
         provider.retrieveAccessToken(consumer, verifier.trim());
 
-        isLoggedin = true;
+        isLoggedIn = true;
     }
 
     public void logout() {
-        isLoggedin = false;
+        isLoggedIn = false;
     }
 
     public ListResponse listDirectory(String fileId, Boolean retry) throws NoInternetConnectionException,
             FolderNotFoundException, UnexpectedStatusCodeException, UnexpectedResponseException, NotLoggedInException,
             UnauthorizedException, IOException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException {
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
@@ -219,21 +222,21 @@ public class StacksyncClient {
             throw new NoInternetConnectionException();
         }
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
-        JSONObject jObject = null;
+        JSONObject jObject;
 
         String path = String.format("/folder/%s/contents", folderId.toString());
 
-
-        String url = Utils.buildUrl("storageUrl", path, null);
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        String url = Utils.buildUrl(apiUrl, path, params);
 
         HttpGet method = new HttpGet(url);
-        /*Pregunta Adri*/
         method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
         method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
         consumer.sign(method);
 
         ListResponse result = new ListResponse();
@@ -256,7 +259,7 @@ public class StacksyncClient {
                 Log.e(TAG, "Folder not found");
                 throw new FolderNotFoundException("Folder not found", statusCode);
             } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-                isLoggedin = false;
+                isLoggedIn = false;
                 throw new UnauthorizedException("User unauthorized", statusCode);
             } else {
                 Log.e(TAG, "Unexpected status code: " + response.getStatusCode());
@@ -283,7 +286,7 @@ public class StacksyncClient {
             throw new NoInternetConnectionException();
         }
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
@@ -295,7 +298,7 @@ public class StacksyncClient {
 //        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
 //        params.add(new Pair<String, String>("file_id", fileId));
         // params.add(new Pair<String, String>("version", xxxx));
-        String urlString = Utils.buildUrl(apiUrl, path, null);
+        String urlString = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
 
         URL url = new URL(urlString);
 
@@ -303,7 +306,7 @@ public class StacksyncClient {
         Log.i(TAG, "Downloading file: " + urlString);
 
         // Open a connection to that URL.
-        HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
+        HttpURLConnection ucon = (HttpURLConnection) url.openConnection();
 
         ucon.setRequestMethod("GET");
         ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "v2");
@@ -359,7 +362,7 @@ public class StacksyncClient {
 
             Log.i(TAG, "download completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
         } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-            isLoggedin = false;
+            isLoggedIn = false;
             throw new UnauthorizedException();
         } else {
             Log.e(TAG, "Unexpected status code: " + statusCode);
@@ -376,7 +379,7 @@ public class StacksyncClient {
             throw new NoInternetConnectionException();
         }
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
@@ -417,7 +420,7 @@ public class StacksyncClient {
             params.add(new Pair<String, String>("parent", parentId));
         }
 
-        String urlString = Utils.buildUrl("storageURL", path, params);
+        String urlString = Utils.buildUrl(apiUrl, path, params);
 
         URL url = new URL(urlString);
 
@@ -425,10 +428,11 @@ public class StacksyncClient {
         Log.i(TAG, "Uploading file: " + urlString);
 
         // Open a connection to that URL.
-        HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
+        HttpURLConnection ucon = (HttpURLConnection) url.openConnection();
 
         ucon.setRequestMethod("POST");
         ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "v2");
+        ucon.addRequestProperty("Content-Type", "application/octet-stream");
 
         // this timeout affects how long it takes for the app to realize
         // there's a connection problem
@@ -446,7 +450,7 @@ public class StacksyncClient {
         int len;
         int total = 0;
         int lastUpdated = 0;
-        int percent = 0;
+        int percent;
 
         while ((len = bfis.read(buffer)) > 0) {
             total += len;
@@ -472,7 +476,7 @@ public class StacksyncClient {
             Log.i(TAG, "upload completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
 
         } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-            isLoggedin = false;
+            isLoggedIn = false;
             throw new UnauthorizedException();
         } else {
             Log.e(TAG, "Unexpected status code: " + statusCode);
@@ -481,14 +485,14 @@ public class StacksyncClient {
     }
 
     public void createFolder(String folderName, String parent) throws NoInternetConnectionException,
-            NotLoggedInException, UnexpectedStatusCodeException, ClientProtocolException, IOException,
-            UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException {
+            NotLoggedInException, UnexpectedStatusCodeException, IOException,
+            UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, JSONException {
 
         if (!Utils.isNetworkConnected(context)) {
             throw new NoInternetConnectionException();
         }
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
@@ -497,17 +501,21 @@ public class StacksyncClient {
         long startTime = System.currentTimeMillis();
 
         String path = "/folder";
-        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-        params.add(new Pair<String, String>("name", folderName));
+
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put("name", folderName);
         if (parent != null) {
-            params.add(new Pair<String, String>("parent", parent));
+            jsonBody.put("parent", parent);
         }
 
-        String url = Utils.buildUrl("storageURL", path, params);
+        String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
 
         method = new HttpPost(url);
         method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
         method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
+        method.setEntity(new StringEntity(jsonBody.toString()));
+
         consumer.sign(method);
 
 
@@ -520,7 +528,7 @@ public class StacksyncClient {
 
                 Log.i(TAG, "Folder created in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
             } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-                isLoggedin = false;
+                isLoggedIn = false;
                 throw new UnauthorizedException();
             } else {
                 throw new UnexpectedStatusCodeException("Status code: " + statusCode);
@@ -533,13 +541,13 @@ public class StacksyncClient {
     }
 
     public void deleteFile(String fileId) throws NoInternetConnectionException, NotLoggedInException,
-            ClientProtocolException, IOException, UnexpectedStatusCodeException, UnauthorizedException {
+            IOException, UnexpectedStatusCodeException, UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException {
 
         if (!Utils.isNetworkConnected(context)) {
             throw new NoInternetConnectionException();
         }
 
-        if (!isLoggedin) {
+        if (!isLoggedIn) {
             throw new NotLoggedInException();
         }
 
@@ -547,15 +555,15 @@ public class StacksyncClient {
 
         long startTime = System.currentTimeMillis();
 
-        String path = "/stacksync/files";
-        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-        params.add(new Pair<String, String>("file_id", fileId));
+        String path = String.format("/file/%s", fileId.toString());
 
-        String url = Utils.buildUrl("storageURL", path, params);
+        String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
 
         method = new HttpDelete(url);
         method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
         method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
+        consumer.sign(method);
 
         try {
             FilesResponse response = new FilesResponse(client.execute(method));
@@ -565,7 +573,7 @@ public class StacksyncClient {
 
                 Log.i(TAG, "File deleted in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
             } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-                isLoggedin = false;
+                isLoggedIn = false;
                 throw new UnauthorizedException();
             } else {
                 throw new UnexpectedStatusCodeException("Status code: " + statusCode);

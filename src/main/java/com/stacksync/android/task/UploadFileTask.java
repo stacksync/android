@@ -89,12 +89,15 @@ public class UploadFileTask extends MyAsyncTask<Object, Integer, Boolean> {
 			message = "Not connected to the service";
 			Log.e(TAG, e.toString(), e);
 		} catch (UnexpectedStatusCodeException e) {
-			message = "Error downloading file. " + e.toString();
+			message = "Error uploading file. " + e.toString();
 			Log.e(TAG, e.toString(), e);
 		} catch (UnauthorizedException e) {
 			Log.e(TAG, e.toString(), e);
 			message = e.toString();
-		}
+		} catch (Exception e) {
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
+        }
 
 		return result;
 	}
