@@ -25,6 +25,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
@@ -46,6 +47,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -483,7 +485,58 @@ public class StacksyncClient {
             throw new UnexpectedStatusCodeException("Status code: " + statusCode);
         }
     }
+    public void rename(String itemId, String itemName, boolean isFolder) throws NotLoggedInException, NoInternetConnectionException, JSONException, IOException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, UnauthorizedException, UnexpectedStatusCodeException {
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+        if (!isLoggedIn) {
+            throw new NotLoggedInException();
+        }
+        HttpPut method = null;
+        String path;
+        long startTime = System.currentTimeMillis();
 
+
+        if (isFolder){
+            path = String.format("/folder/%s", itemId.toString());
+        }
+        else{
+            path = String.format("/file/%s", itemId.toString());
+        }
+
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put("name", itemName);
+
+        String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
+
+        method = new HttpPut(url);
+        method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
+        method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
+        method.setEntity(new StringEntity(jsonBody.toString()));
+
+        consumer.sign(method);
+
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
+            int statusCode = response.getStatusCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+
+                Log.i(TAG, "Item renamed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedIn = false;
+                throw new UnauthorizedException();
+            } else {
+                throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+            }
+
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+
+    }
     public void createFolder(String folderName, String parent) throws NoInternetConnectionException,
             NotLoggedInException, UnexpectedStatusCodeException, IOException,
             UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, JSONException {

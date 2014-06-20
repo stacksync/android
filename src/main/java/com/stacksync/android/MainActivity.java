@@ -52,6 +52,7 @@ import com.stacksync.android.task.DeleteFileTask;
 import com.stacksync.android.task.DownloadFileTask;
 import com.stacksync.android.task.ListDirectoryTask;
 import com.stacksync.android.task.OpenFileTask;
+import com.stacksync.android.task.RenameItemTask;
 import com.stacksync.android.task.ShareFileTask;
 import com.stacksync.android.task.UploadFileTask;
 import com.stacksync.android.utils.Constants;
@@ -76,6 +77,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 	private static final int MENU_DOWNLOAD = 1;
 	private static final int MENU_DELETE = 2;
 	private static final int MENU_SHARE = 3;
+    private static final int MENU_RENAME = 4;
 
 	// Intent result codes
 	private static final int UPLOAD_FILE_RESULT_CODE = 1;
@@ -293,14 +295,17 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 			String filename = (String) item.get(KEY_FILENAME);
 
 			menu.setHeaderTitle(filename);
-
 			if (isFolder) {
 				menu.add(v.getId(), MENU_DELETE, 1, "Delete");
-			} else {
+                menu.add(v.getId(), MENU_RENAME, 2, "Rename");
+
+            } else {
 				menu.add(v.getId(), MENU_DOWNLOAD, 0, "Export");
 				menu.add(v.getId(), MENU_DELETE, 1, "Delete");
-				menu.add(v.getId(), MENU_SHARE, 2, "Share");
-			}
+                menu.add(v.getId(), MENU_RENAME, 2, "Rename");
+                menu.add(v.getId(), MENU_SHARE, 3, "Share");
+
+            }
 		}
 	}
 
@@ -322,6 +327,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 			String filename = (String) item.get(KEY_FILENAME);
 			String fileId = (String) item.get(KEY_FILEID);
 			String mimetype = (String) item.get(KEY_MIMETYPE);
+            boolean isFolder = (Boolean) item.get(KEY_ISFOLDER);
 			// String path = getCurrentPath();
 
 			switch (menuItem.getItemId()) {
@@ -338,7 +344,8 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 				// TODO: get the real version
 				onShareFileClick(fileId, "0", filename, mimetype);
 				return true;
-
+            case MENU_RENAME:
+                onRenameItemClick(fileId, filename, isFolder);
 			default:
 				return false;
 			}
@@ -634,6 +641,45 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 		shareTask.execute(fileId, version, filename, mimetype);
 	}
 
+    private void onRenameItemClick(final String itemId, String itemName,final boolean isFolder){
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        if (isFolder) {
+            alert.setTitle("Rename Folder");
+            alert.setMessage("Folder name:");
+        }
+        else{
+            alert.setTitle("Rename File");
+            alert.setMessage("File name:");
+        }
+        final EditText input = new EditText(this);
+        input.setLines(1);
+        input.setSingleLine();
+        input.setText(itemName);
+        alert.setView(input);
+
+        alert.setPositiveButton("Create", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String newItemName = input.getText().toString();
+
+                if (validateFilename(newItemName)) {
+                    AsyncTask<String, Integer, Boolean> renameItem = new RenameItemTask(MainActivity.this);
+                    renameItem.execute(newItemName, itemId, Boolean.toString(isFolder));
+
+                } else {
+                    Toast.makeText(MainActivity.this, "Invalid folder name", Toast.LENGTH_LONG).show();
+                }
+
+            }
+        });
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled.
+            }
+        });
+
+        alert.show();
+    }
+
 	private void onUploadFileClick() {
 
 		final String items[] = { "Photos or videos", "Other files" };
@@ -706,7 +752,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 		final EditText input = new EditText(this);
 		input.setLines(1);
 		input.setSingleLine();
-		alert.setView(input);
+        alert.setView(input);
 
 		alert.setPositiveButton("Create", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int whichButton) {
