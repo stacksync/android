@@ -657,7 +657,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
         input.setText(itemName);
         alert.setView(input);
 
-        alert.setPositiveButton("Create", new DialogInterface.OnClickListener() {
+        alert.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
                 String newItemName = input.getText().toString();
 

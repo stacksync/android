@@ -22,9 +22,6 @@ import oauth.signpost.exception.OAuthCommunicationException;
 import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
 
-/**
- * Created by edgar on 20/06/14.
- */
 public class RenameItemTask extends AsyncTask<String, Integer, Boolean> {
 
     private static String TAG = RenameItemTask.class.getName();
@@ -51,7 +48,7 @@ public class RenameItemTask extends AsyncTask<String, Integer, Boolean> {
     protected void onPreExecute() {
         progressBar = new ProgressDialog(context);
         progressBar.setCancelable(true);
-        progressBar.setMessage("Renameing Item...");
+        progressBar.setMessage("Renaming Item...");
         progressBar.show();
     }
 
@@ -65,6 +62,7 @@ public class RenameItemTask extends AsyncTask<String, Integer, Boolean> {
         StacksyncClient client = StacksyncApp.getClient(context);
         try {
             client.rename(itemId, itemName, isFolder);
+            result = true;
             if (isFolder) {
                 message = "Folder successfully renamed";
             }else{
@@ -74,21 +72,26 @@ public class RenameItemTask extends AsyncTask<String, Integer, Boolean> {
             Log.e(TAG, e.toString(), e);
             message = "Please check your internet connection";
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
         } catch (OAuthMessageSignerException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
         } catch (OAuthCommunicationException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
         } catch (UnexpectedStatusCodeException e) {
             Log.e(TAG, e.toString(), e);
             message = "Error renaming item. " + e.toString();
         } catch (OAuthExpectationFailedException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
         } catch (NotLoggedInException e) {
             Log.e(TAG, e.toString(), e);
             message = "Not connected to the service";
         } catch (UnauthorizedException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.toString(), e);
+            message = e.toString();
         } catch (IOException e) {
             Log.e(TAG, e.toString(), e);
             message = "Error renaming item. " + e.toString();
