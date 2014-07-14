@@ -20,7 +20,6 @@ import com.stacksync.android.utils.Constants;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -36,6 +35,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -47,22 +47,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
 import oauth.signpost.OAuth;
 import oauth.signpost.OAuthProvider;
-import oauth.signpost.basic.DefaultOAuthProvider;
 import oauth.signpost.commonshttp.CommonsHttpOAuthProvider;
 import oauth.signpost.exception.OAuthCommunicationException;
 import oauth.signpost.exception.OAuthExpectationFailedException;
@@ -79,7 +75,7 @@ public class StacksyncClient {
 
     private StacksyncConsumer consumer;
     private String authorizeUrl;
-    private String apiUrl = "http://api.stacksync.com:8080/v1";
+    private String apiUrl;
     private String verifier;
     private OAuthProvider provider;
 
@@ -105,16 +101,21 @@ public class StacksyncClient {
             client = DevClientWrapper.wrapClient(client);
         }
 
+
+    }
+
+    public void initOauth(String apiUrl){
+
+        this.apiUrl = String.format("%s/v1", apiUrl);
         consumer = new StacksyncConsumer("b3af4e669daf880fb16563e6f36051b105188d413",
                 "c168e65c18d75b35d8999b534a3776cf");
         provider = new CommonsHttpOAuthProvider(
-                "http://api.stacksync.com:8080/oauth/request_token",
-                "http://api.stacksync.com:8080/oauth/access_token",
-                "http://api.stacksync.com:8080/oauth/authorize");
+                String.format("%s/oauth/request_token", apiUrl),
+                String.format("%s/oauth/access_token", apiUrl),
+                String.format("%s/oauth/authorize", apiUrl));
         provider.setOAuth10a(true);
         provider.setListener(new StacksyncProviderListener());
     }
-
 
     public boolean isLoggedIn() {
         return isLoggedIn;
@@ -135,7 +136,6 @@ public class StacksyncClient {
             throw new NoInternetConnectionException();
         }
 
-
         authorizeUrl = provider.retrieveRequestToken(consumer, OAuth.OUT_OF_BAND);
     }
 
@@ -155,12 +155,13 @@ public class StacksyncClient {
         method.setEntity(entity);
 
         HttpResponse response = client.execute(method);
-        String aux_content_type = response.getEntity().getContentType().getValue();
-       if ("application/x-www-form-urlencoded".equals(response.getEntity().getContentType().getValue())) {
+        String contentType = response.getEntity().getContentType().getValue();
+
+       if ("application/x-www-form-urlencoded".equals(contentType)) {
            BufferedReader rd = new BufferedReader(
                    new InputStreamReader(response.getEntity().getContent()));
 
-           String lineAux = "";
+           String lineAux;
            String line = "";
 
            while ((lineAux = rd.readLine()) != null) {
@@ -332,15 +333,14 @@ public class StacksyncClient {
             byte[] buff = new byte[5 * 1024];
 
             // Read bytes (and store them) until there is nothing more to
-            // read(-1)
             int len;
             int total = 0;
             int lastUpdated = 0;
-            int percent = 0;
+            int percent;
 
             while ((len = inStream.read(buff)) != -1) {
                 total += len;
-                percent = (int) (total * 100 / fileSize);
+                percent = total * 100 / fileSize;
                 if (lastUpdated != percent) {
                     if (task.isCancelled()) {
                         outStream.close();
@@ -537,6 +537,7 @@ public class StacksyncClient {
         }
 
     }
+
     public void createFolder(String folderName, String parent) throws NoInternetConnectionException,
             NotLoggedInException, UnexpectedStatusCodeException, IOException,
             UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, JSONException {
@@ -625,6 +626,62 @@ public class StacksyncClient {
             if (statusCode >= 200 && statusCode < 300) {
 
                 Log.i(TAG, "File deleted in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedIn = false;
+                throw new UnauthorizedException();
+            } else {
+                throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+            }
+
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+    }
+
+    public void shareFolder(String folderId, String email) throws NoInternetConnectionException,
+            NotLoggedInException, UnexpectedStatusCodeException, IOException,
+            UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, JSONException {
+
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+
+        if (!isLoggedIn) {
+            throw new NotLoggedInException();
+        }
+
+        HttpPost method;
+
+        long startTime = System.currentTimeMillis();
+
+        String path = String.format("/folder/%s/share", folderId);
+
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.put(email);
+
+        //JSONObject jsonBody = new JSONObject();
+        //jsonBody.put("share_to", jsonArray);
+
+        String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
+
+        method = new HttpPost(url);
+        method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
+        method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
+        method.setEntity(new StringEntity(jsonArray.toString()));
+
+        consumer.sign(method);
+
+
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
+
+            int statusCode = response.getStatusCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+
+                Log.i(TAG, "Folder shared in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
             } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
                 isLoggedIn = false;
                 throw new UnauthorizedException();

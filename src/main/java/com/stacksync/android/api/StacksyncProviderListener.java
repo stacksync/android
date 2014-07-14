@@ -8,7 +8,6 @@ public class StacksyncProviderListener implements OAuthProviderListener {
     @Override
     public void prepareRequest(HttpRequest httpRequest) throws Exception {
         httpRequest.setHeader("StackSync-API", "v2");
-
     }
 
     @Override

@@ -7,8 +7,6 @@ import com.stacksync.android.utils.Constants;
 
 public class StacksyncApp {
 
-	// TODO: Make it a factory
-
 	private static StacksyncClient client;
 
 	public static StacksyncClient getClient(Context context) {
