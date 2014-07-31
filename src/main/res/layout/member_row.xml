@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="5dip" >
+
+    <!-- Filename -->
+    <TextView
+        android:id="@+id/members_labelUsername"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dip"
+        android:layout_marginLeft="10dip"
+        android:text="John Doe"
+        android:textColor="#040404"
+        android:textSize="16dip"
+        android:textStyle="bold"
+        android:typeface="sans" />
+
+    <!-- Filename -->
+    <TextView
+        android:id="@+id/members_labelOwner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/members_labelUsername"
+        android:layout_marginLeft="10dp"
+        android:text="(owner)"
+        android:textColor="#040404"
+        android:textSize="16dip"
+        android:typeface="sans" />
+
+
+    <!-- Fileinfo -->
+    <TextView
+        android:id="@+id/members_labelJoinedAt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/members_labelUsername"
+        android:layout_marginTop="1dip"
+        android:layout_marginLeft="10dip"
+        android:text="Joined 2014-02-21 14:23:40"
+        android:textColor="#808080"
+        android:textSize="14dip"
+        android:typeface="sans" />
+
+
+</RelativeLayout>

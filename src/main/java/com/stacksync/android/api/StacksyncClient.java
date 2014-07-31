@@ -695,6 +695,61 @@ public class StacksyncClient {
         }
     }
 
+    public JSONArray getFolderMembers(String folderId) throws NoInternetConnectionException,
+            NotLoggedInException, UnexpectedStatusCodeException, IOException,
+            UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, JSONException {
+
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+
+        if (!isLoggedIn) {
+            throw new NotLoggedInException();
+        }
+
+        HttpGet method;
+
+        long startTime = System.currentTimeMillis();
+
+        String path = String.format("/folder/%s/members", folderId);
+
+        String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
+
+        method = new HttpGet(url);
+        method.getParams().setIntParameter("http.socket.timeout", Constants.TIMEOUT_CONNECTION);
+        method.setHeader(FilesConstants.STACKSYNC_API, "v2");
+
+        consumer.sign(method);
+
+
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
+
+            int statusCode = response.getStatusCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+
+                Log.i(TAG, "Get folder members in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+
+                String body = response.getResponseBodyAsString();
+                JSONArray jObject = new JSONArray(body);
+
+                return jObject;
+
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedIn = false;
+                throw new UnauthorizedException();
+            } else {
+                throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+            }
+
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+
+    }
+
     /**
      * always verify the host - dont check for certificate
      */

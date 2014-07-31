@@ -54,7 +54,6 @@ import com.stacksync.android.task.ListDirectoryTask;
 import com.stacksync.android.task.OpenFileTask;
 import com.stacksync.android.task.RenameItemTask;
 import com.stacksync.android.task.ShareFileTask;
-import com.stacksync.android.task.ShareFolderTask;
 import com.stacksync.android.task.UploadFileTask;
 import com.stacksync.android.utils.Constants;
 
@@ -349,7 +348,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
                     onRenameItemClick(fileId, filename, isFolder);
                     return true;
                 case MENU_SHARE:
-                    onShareFolderClick(fileId);
+                    onShareFolderClick(fileId, filename);
                     return true;
                 default:
                     return false;
@@ -784,35 +783,12 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
         alert.show();
     }
 
-    private void onShareFolderClick(final String folderId) {
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+    private void onShareFolderClick(String folderId, String folderName) {
 
-        alert.setTitle("Share folder");
-        alert.setMessage("Email:");
-
-        final EditText input = new EditText(this);
-        input.setLines(1);
-        input.setSingleLine();
-        alert.setView(input);
-
-        alert.setPositiveButton("Share", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String email = input.getText().toString();
-
-                //TODO: Validate email
-
-                AsyncTask<String, Integer, Boolean> shareFolder = new ShareFolderTask(MainActivity.this);
-                shareFolder.execute(folderId, email);
-            }
-        });
-
-        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                // Canceled.
-            }
-        });
-
-        alert.show();
+        Intent intent = new Intent(getBaseContext(), SharingActivity.class);
+        intent.putExtra(SharingActivity.FOLDER_ID, folderId);
+        intent.putExtra(SharingActivity.FOLDER_NAME, folderName);
+        startActivity(intent);
     }
 
     private Boolean validateFilename(String filename) {

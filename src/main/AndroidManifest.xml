@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.stacksync.android"
     android:versionCode="21"
@@ -14,12 +15,12 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
+        android:debuggable="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:debuggable="true"
         android:theme="@style/Theme.Sherlock.Light.DarkActionBar" >
         <activity
-            android:name=".MainActivity"
+            android:name="com.stacksync.android.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_activity_main" >
             <intent-filter>
@@ -29,7 +30,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.stacksync.android.SettingsActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/title_settings" >
         </activity>
@@ -56,18 +57,22 @@
             android:label="@string/title_activity_login"
             android:noHistory="true" >
         </activity>
-        
+
         <!-- Activity for file browser -->
         <activity
             android:name="ua.com.vassiliev.androidfilebrowser.FileBrowserActivity"
-            android:label="File browser" 
-            android:configChanges="keyboardHidden|orientation|screenSize">
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:label="File browser" >
             <intent-filter>
                 <action android:name="ua.com.vassiliev.androidfilebrowser.SELECT_DIRECTORY_ACTION" />
             </intent-filter>
-            
         </activity>
         <!-- End of Activity for file browser -->
+        <activity
+            android:name="com.stacksync.android.SharingActivity"
+            android:label="@string/title_activity_sharing"
+            android:theme="@android:style/Theme.Holo.Light.Dialog" >
+        </activity>
     </application>
 
 </manifest>

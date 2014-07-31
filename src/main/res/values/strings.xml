@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <string name="app_name">StackSync</string>
@@ -7,7 +8,9 @@
     <string name="search_hint">Search files and folders</string>
     <string name="title_activity_search">SearchActivity</string>
     <string name="title_activity_login">StackSync</string>
-    <string name="title_settings">StackSync settings</string>    <string-array name="cache_limit">
+    <string name="title_settings">StackSync settings</string>
+
+    <string-array name="cache_limit">
         <item>Disabled</item>
         <item>50 MB</item>
         <item>100 MB</item>
@@ -17,5 +20,10 @@
         <item>52428800</item>
         <item>104857600</item>
     </string-array>
+
     <string name="no_items_in_list">Loading... please wait.</string>
+    <string name="title_activity_sharing">SharingActivity</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
 </resources>
