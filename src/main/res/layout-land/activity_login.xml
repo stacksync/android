@@ -26,8 +26,9 @@
             android:layout_alignTop="@+id/logo"
             android:layout_marginLeft="15dp"
             android:layout_marginRight="15dp"
-
-            android:hint="Auth URL" 
+            android:text="https://www.k.nefeles.es:5000/v3"
+            android:hint="Auth URL"
+            android:visibility="invisible"
             >
             <requestFocus />
         </EditText>

@@ -32,11 +32,7 @@ public class Utils {
 	}
 
 	public static String getApplicationName(Context context) {
-		// FIXME: this function must return the actual application name,
-		// NOT the package name
-
-		String name = "StackSync";
-
+		String name = context.getResources().getString(R.string.app_name);
 		return name;
 	}
 

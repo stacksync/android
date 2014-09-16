@@ -17,6 +17,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -57,544 +58,566 @@ import com.stacksync.android.utils.Constants;
 
 public class StacksyncClient {
 
-	private static String TAG = "StacksyncClient";
+    private static String TAG = "StacksyncClient";
+
+    private Context context;
+    private HttpClient client;
+    private int connectionTimeout;
+    private boolean isLoggedin = false;
+    private String storageURL = null;
+    private String authToken = null;
 
-	private Context context;
-	private HttpClient client;
-	private int connectionTimeout;
-	private boolean isLoggedin = false;
-	private String storageURL = null;
-	private String authToken = null;
+    private String authUrl;
+    private String username;
+    private String password;
 
-	private String authUrl;
-	private String username;
-	private String password;
+    public StacksyncClient(Context context, boolean developmentMode) {
 
-	public StacksyncClient(Context context, boolean developmentMode) {
+        this.context = context;
 
-		this.context = context;
+        BasicHttpParams httpParameters = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(httpParameters, Constants.TIMEOUT_CONNECTION);
+        HttpConnectionParams.setSoTimeout(httpParameters, Constants.TIMEOUT_SOCKET);
 
-		BasicHttpParams httpParameters = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters, Constants.TIMEOUT_CONNECTION);
-		HttpConnectionParams.setSoTimeout(httpParameters, Constants.TIMEOUT_SOCKET);
+        SchemeRegistry schemeRegistry = new SchemeRegistry();
+        schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+        final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
+        schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
 
-		SchemeRegistry schemeRegistry = new SchemeRegistry();
-		schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-		final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
-		schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
+        ClientConnectionManager cm = new ThreadSafeClientConnManager(httpParameters, schemeRegistry);
 
-		ClientConnectionManager cm = new ThreadSafeClientConnManager(httpParameters, schemeRegistry);
+        client = new DefaultHttpClient(cm, httpParameters);
 
-		client = new DefaultHttpClient(cm, httpParameters);
+        if (developmentMode) {
+            client = DevClientWrapper.wrapClient(client);
+        }
+    }
 
-		if (developmentMode) {
-			client = DevClientWrapper.wrapClient(client);
-		}
-	}
+    public void setAuthUrl(String authUrl) {
+        this.authUrl = authUrl;
+    }
 
-	public void setAuthUrl(String authUrl) {
-		this.authUrl = authUrl;
-	}
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    public boolean isLoggedIn() {
+        return isLoggedin;
+    }
 
-	public boolean isLoggedIn() {
-		return isLoggedin;
-	}
+    public LoginResponse login() throws UnexpectedStatusCodeException,
+            UnauthorizedException, UnexpectedResponseException, IOException, NoInternetConnectionException {
 
-	public LoginResponse login() throws UnexpectedStatusCodeException,
-			UnauthorizedException, UnexpectedResponseException, IOException, NoInternetConnectionException {
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
 
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
+        String userNameKeystone = username;
 
-		String tenantNameKeystone = username;
-		String userNameKeystone = username;
+        String domainName = "d_Stacksync";
 
-		String content = "{\"auth\": {\"passwordCredentials\": {\"username\": \"" + userNameKeystone
-				+ "\", \"password\": \"" + password + "\"}, \"tenantName\":\"" + tenantNameKeystone + "\"}}";
+        String content = "{" +
+                "\"auth\": { " +
+                "\"identity\": { " +
+                "\"methods\": [\"password\"], " +
+                "\"password\": {\n" +
+                "\"user\": {\"domain\": {\"name\": \"" + domainName + "\"}, " +
+                "\"name\": \"" + userNameKeystone + "\", " +
+                "\"password\": \"" + password + "\"} " +
+                "} " +
+                "}, " +
+                "\"scope\": {\"project\": {\"domain\": {\"name\": \"" + domainName + "\"}, " +
+                "\"name\": \"" + userNameKeystone + "\"}} " +
+                "} " +
+                "}";
 
-		HttpPost method = new HttpPost(authUrl);
-		int statusCode = 0;
+        HttpPost method = new HttpPost(authUrl + "/auth/tokens");
+        int statusCode = 0;
 
-		try {
+        try {
 
-			InputStream stream = new ByteArrayInputStream(content.getBytes("UTF-8"));
-			InputStreamEntity entity = new InputStreamEntity(stream, content.getBytes("UTF-8").length);
-			entity.setContentType("application/json");
-			method.setEntity(entity);
+            InputStream stream = new ByteArrayInputStream(content.getBytes("UTF-8"));
+            InputStreamEntity entity = new InputStreamEntity(stream, content.getBytes("UTF-8").length);
+            entity.setContentType("application/json");
+            method.setEntity(entity);
 
-			FilesResponse response = new FilesResponse(client.execute(method));
-			statusCode = response.getStatusCode();
+            FilesResponse response = new FilesResponse(client.execute(method));
+            statusCode = response.getStatusCode();
 
-			if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-				Log.e(TAG, "User unauthorized");
-				throw new UnauthorizedException("User unauthorized", statusCode);
-			}
+            if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                Log.e(TAG, "User unauthorized");
+                throw new UnauthorizedException("User unauthorized", statusCode);
+            }
 
-			if (statusCode < 200 || statusCode >= 300) {
-				Log.e(TAG, "Unexpected status code: " + statusCode);
-				throw new UnexpectedStatusCodeException("Unexpected status code: " + statusCode, statusCode);
-			}
+            if (statusCode < 200 || statusCode >= 300) {
+                Log.e(TAG, "Unexpected status code: " + statusCode);
+                InputStream in = response.getResponseBodyAsStream();
+                String outString = IOUtils.toString(in, "UTF-8");
+                throw new UnexpectedStatusCodeException("Unexpected status code: " + statusCode + outString, statusCode);
+            }
 
-			InputStream in = response.getResponseBodyAsStream();
-			String outString = IOUtils.toString(in, "UTF-8");
+            InputStream in = response.getResponseBodyAsStream();
+            String outString = IOUtils.toString(in, "UTF-8");
 
-			LoginResponse result = new LoginResponse(false, response.getStatusCode(), "");
+            Header header = response.getResponseHeaders("X-Subject-Token")[0];
+            authToken = header.getValue();
 
-			JSONObject jobjResult = new JSONObject(outString);
+            LoginResponse result = new LoginResponse(false, response.getStatusCode(), "");
 
-			JSONObject jobjAcess = jobjResult.getJSONObject("access");
-			JSONObject jobjToken = jobjAcess.getJSONObject("token");
-			authToken = jobjToken.getString("id");
+            JSONObject jobjResult = new JSONObject(outString);
 
-			JSONArray jarrCatalog = jobjAcess.getJSONArray("serviceCatalog");
+            JSONObject jobjAcess = jobjResult.getJSONObject("token");
 
-			for (int i = 0; i < jarrCatalog.length(); i++) {
-				JSONObject jsonLineItem = jarrCatalog.getJSONObject(i);
-				String value = jsonLineItem.getString("type");
+            JSONArray jarrCatalog = jobjAcess.getJSONArray("catalog");
 
-				if (value.compareTo("object-store") == 0) {
-					JSONArray jarray2 = jsonLineItem.getJSONArray("endpoints");
-					JSONObject endpoint = jarray2.getJSONObject(0);
-					storageURL = endpoint.getString("publicURL");
+            for (int i = 0; i < jarrCatalog.length(); i++) {
+                JSONObject jsonLineItem = jarrCatalog.getJSONObject(i);
+                String value = jsonLineItem.getString("type");
 
-					result.setStorageURL(storageURL);
-					result.setSucced(true);
-					isLoggedin = true;
+                if (value.compareTo("object-store") == 0) {
 
-					break;
-				}
-			}
+                    JSONArray jarray2 = jsonLineItem.getJSONArray("endpoints");
 
-			return result;
-
-		} catch (JSONException e) {
-			Log.e(TAG, "Could not parse JSON response", e);
-			throw new UnexpectedResponseException("Could not parse JSON response", statusCode);
-
-		} finally {
-			method.abort();
-		}
-	}
+                    for (int j = 0; j < jarray2.length(); j++) {
+                        JSONObject endpoint = jarray2.getJSONObject(j);
+                        String publicURL = endpoint.getString("interface");
+                        if (publicURL.compareTo("public") == 0) {
+                            storageURL = endpoint.getString("url");
 
-	public void logout() {
-		isLoggedin = false;
-	}
+                            isLoggedin = true;
+                            result.setStorageURL(storageURL);
+                            result.setSucced(true);
+                            break;
+                        }
+                    }
+                }
+            }
 
-	public ListResponse listDirectory(String fileId, Boolean retry) throws NoInternetConnectionException,
-			FolderNotFoundException, UnexpectedStatusCodeException, UnexpectedResponseException, NotLoggedInException,
-			UnauthorizedException, IOException {
+            return result;
 
-		if (!isLoggedin) {
-			login();
-		}
+        } catch (JSONException e) {
+            Log.e(TAG, "Could not parse JSON response", e);
+            throw new UnexpectedResponseException("Could not parse JSON response", statusCode);
 
-		try {
-			return listDirectory(fileId);
-		} catch (UnauthorizedException e) {
+        } finally {
+            method.abort();
+        }
+    }
 
-			if (retry) {
-				Log.w(TAG, "Retrying to login.");
-				login();
-				return listDirectory(fileId);
+    public void logout() {
+        isLoggedin = false;
+    }
 
-			} else {
-				throw e;
-			}
-		}
-	}
+    public ListResponse listDirectory(String fileId, Boolean retry) throws NoInternetConnectionException,
+            FolderNotFoundException, UnexpectedStatusCodeException, UnexpectedResponseException, NotLoggedInException,
+            UnauthorizedException, IOException {
 
-	public ListResponse listDirectory(String fileId) throws NoInternetConnectionException, FolderNotFoundException,
-			UnexpectedStatusCodeException, UnexpectedResponseException, NotLoggedInException, UnauthorizedException,
-			IOException {
+        if (!isLoggedin) {
+            login();
+        }
 
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
+        try {
+            return listDirectory(fileId);
+        } catch (UnauthorizedException e) {
 
-		if (!isLoggedin) {
-			throw new NotLoggedInException();
-		}
+            if (retry) {
+                Log.w(TAG, "Retrying to login.");
+                login();
+                return listDirectory(fileId);
 
-		JSONObject jObject = null;
+            } else {
+                throw e;
+            }
+        }
+    }
 
-		HttpGet method = null;
+    public ListResponse listDirectory(String fileId) throws NoInternetConnectionException, FolderNotFoundException,
+            UnexpectedStatusCodeException, UnexpectedResponseException, NotLoggedInException, UnauthorizedException,
+            IOException {
 
-		String path = "/stacksync/metadata";
-		List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
 
-		if (fileId != null) {
-			params.add(new Pair<String, String>("file_id", fileId));
-		}
+        if (!isLoggedin) {
+            throw new NotLoggedInException();
+        }
 
-		params.add(new Pair<String, String>("include_deleted", Boolean.FALSE.toString()));
-		params.add(new Pair<String, String>("list", Boolean.TRUE.toString()));
+        JSONObject jObject = null;
 
-		String url = Utils.buildUrl(storageURL, path, params);
+        HttpGet method = null;
 
-		method = new HttpGet(url);
-		method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
-		method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
-		method.setHeader(FilesConstants.STACKSYNC_API, "True");
+        String path = "/stacksync/metadata";
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
 
-		ListResponse result = new ListResponse();
+        if (fileId != null) {
+            params.add(new Pair<String, String>("file_id", fileId));
+        }
 
-		try {
-			FilesResponse response = new FilesResponse(client.execute(method));
-			int statusCode = response.getStatusCode();
-
-			if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_ACCEPTED) {
-
-				String body = response.getResponseBodyAsString();
-				jObject = new JSONObject(body);
-
-				result.setSucced(true);
-				result.setStatusCode(statusCode);
-				result.setFileId(fileId);
-				result.setMetadata(jObject);
-
-			} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-				Log.e(TAG, "Folder not found");
-				throw new FolderNotFoundException("Folder not found", statusCode);
-			} else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-				isLoggedin = false;
-				throw new UnauthorizedException("User unauthorized", statusCode);
-			} else {
-				Log.e(TAG, "Unexpected status code: " + response.getStatusCode());
-				throw new UnexpectedStatusCodeException("Status code: " + response.getStatusCode(), statusCode);
-			}
-
-		} catch (JSONException e) {
-			Log.e(TAG, "JSON parsing error", e);
-			throw new UnexpectedResponseException("Error parsing JSON response");
-
-		} finally {
-			if (method != null)
-				method.abort();
-		}
-
-		return result;
-	}
-
-	public void downloadFileSmart(MyAsyncTask<String, Integer, Boolean> task, String fileId, String saveToPath)
-			throws IOException, NoInternetConnectionException, NotLoggedInException, UnexpectedStatusCodeException,
-			UnauthorizedException {
-
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
-
-		if (!isLoggedin) {
-			throw new NotLoggedInException();
-		}
-
-		File file = new File(saveToPath);
-		// TODO: check if we have read and write permission
-
-		String path = "/stacksync/files";
-		List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-		params.add(new Pair<String, String>("file_id", fileId));
-		// params.add(new Pair<String, String>("version", xxxx));
-		String urlString = Utils.buildUrl(storageURL, path, params);
-
-		URL url = new URL(urlString);
-
-		long startTime = System.currentTimeMillis();
-		Log.i(TAG, "Downloading file: " + urlString);
-
-		// Open a connection to that URL.
-		HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
-
-		ucon.setRequestMethod("GET");
-		ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, authToken);
-		ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "True");
-
-		// this timeout affects how long it takes for the app to realize
-		// there's
-		// a connection problem
-		ucon.setReadTimeout(connectionTimeout);
-		// ucon.setConnectTimeout(TIMEOUT_SOCKET);
-
-		ucon.connect();
-
-		int statusCode = ucon.getResponseCode();
-
-		if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_ACCEPTED) {
-
-			int fileSize = ucon.getContentLength();
-
-			InputStream is = new BufferedInputStream(ucon.getInputStream());
-			BufferedInputStream inStream = new BufferedInputStream(is, 1024 * 5);
-			FileOutputStream outStream = new FileOutputStream(file);
-			byte[] buff = new byte[5 * 1024];
-
-			// Read bytes (and store them) until there is nothing more to
-			// read(-1)
-			int len;
-			int total = 0;
-			int lastUpdated = 0;
-			int percent = 0;
-
-			while ((len = inStream.read(buff)) != -1) {
-				total += len;
-				percent = (int) (total * 100 / fileSize);
-				if (lastUpdated != percent) {
-					if (task.isCancelled()){
-						outStream.close();
-						inStream.close();
-						file.delete();
-						throw new CancelledTaskException();
-					}
-					task.setProgress(percent);
-					lastUpdated = percent;
-				}
-
-				outStream.write(buff, 0, len);
-			}
-
-			task.setProgress(100);
-
-			// clean up
-			outStream.flush();
-			outStream.close();
-			inStream.close();
-
-			Log.i(TAG, "download completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
-		} else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			isLoggedin = false;
-			throw new UnauthorizedException();
-		} else {
-			Log.e(TAG, "Unexpected status code: " + statusCode);
-			throw new UnexpectedStatusCodeException("Status code: " + statusCode);
-		}
-
-	}
-
-	public void uploadFileSmart(MyAsyncTask<Object, Integer, Boolean> task, Uri selectedFile, String parentId)
-			throws IOException, NoInternetConnectionException, NotLoggedInException, UnexpectedStatusCodeException,
-			FileNotFoundException, UnauthorizedException {
-
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
-
-		if (!isLoggedin) {
-			throw new NotLoggedInException();
-		}
-
-		InputStream fis = context.getContentResolver().openInputStream(selectedFile);
-
-		// TODO: do get filename and filesize in a functions.
-		String fileName = "";
-		long fileSize = 0;
-		String scheme = selectedFile.getScheme();
-		if (scheme.equals("file")) {
-			File file = new File(selectedFile.getPath());
-			fileName = file.getName();
-			fileSize = file.length();
-		} else if (scheme.equals("content")) {
-
-			String[] proj = { "_data" };
-			Cursor cursor = context.getContentResolver().query(selectedFile, proj, null, null, null);
-			if (cursor.moveToFirst()) {
-				File file = new File(cursor.getString(0));
-				fileName = file.getName();
-				fileSize = file.length();
-			} else {
-				throw new IOException("Can't retrieve path from uri: " + selectedFile.toString());
-			}
-		}
+        params.add(new Pair<String, String>("include_deleted", Boolean.FALSE.toString()));
+        params.add(new Pair<String, String>("list", Boolean.TRUE.toString()));
+
+        String url = Utils.buildUrl(storageURL, path, params);
+
+        method = new HttpGet(url);
+        method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
+        method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
+        method.setHeader(FilesConstants.STACKSYNC_API, "True");
+
+        ListResponse result = new ListResponse();
+
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
+            int statusCode = response.getStatusCode();
+
+            if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_ACCEPTED) {
+
+                String body = response.getResponseBodyAsString();
+                jObject = new JSONObject(body);
+
+                result.setSucced(true);
+                result.setStatusCode(statusCode);
+                result.setFileId(fileId);
+                result.setMetadata(jObject);
+
+            } else if (statusCode == HttpStatus.SC_NOT_FOUND) {
+                Log.e(TAG, "Folder not found");
+                throw new FolderNotFoundException("Folder not found", statusCode);
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedin = false;
+                throw new UnauthorizedException("User unauthorized", statusCode);
+            } else {
+                Log.e(TAG, "Unexpected status code: " + response.getStatusCode());
+                throw new UnexpectedStatusCodeException("Status code: " + response.getStatusCode(), statusCode);
+            }
+
+        } catch (JSONException e) {
+            Log.e(TAG, "JSON parsing error", e);
+            throw new UnexpectedResponseException("Error parsing JSON response");
+
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+
+        return result;
+    }
+
+    public void downloadFileSmart(MyAsyncTask<String, Integer, Boolean> task, String fileId, String saveToPath)
+            throws IOException, NoInternetConnectionException, NotLoggedInException, UnexpectedStatusCodeException,
+            UnauthorizedException {
+
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+
+        if (!isLoggedin) {
+            throw new NotLoggedInException();
+        }
+
+        File file = new File(saveToPath);
+        // TODO: check if we have read and write permission
+
+        String path = "/stacksync/files";
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        params.add(new Pair<String, String>("file_id", fileId));
+        // params.add(new Pair<String, String>("version", xxxx));
+        String urlString = Utils.buildUrl(storageURL, path, params);
+
+        URL url = new URL(urlString);
+
+        long startTime = System.currentTimeMillis();
+        Log.i(TAG, "Downloading file: " + urlString);
+
+        // Open a connection to that URL.
+        HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
+
+        ucon.setRequestMethod("GET");
+        ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, authToken);
+        ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "True");
+
+        // this timeout affects how long it takes for the app to realize
+        // there's
+        // a connection problem
+        ucon.setReadTimeout(connectionTimeout);
+        // ucon.setConnectTimeout(TIMEOUT_SOCKET);
+
+        ucon.connect();
+
+        int statusCode = ucon.getResponseCode();
+
+        if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_ACCEPTED) {
+
+            int fileSize = ucon.getContentLength();
+
+            InputStream is = new BufferedInputStream(ucon.getInputStream());
+            BufferedInputStream inStream = new BufferedInputStream(is, 1024 * 5);
+            FileOutputStream outStream = new FileOutputStream(file);
+            byte[] buff = new byte[5 * 1024];
+
+            // Read bytes (and store them) until there is nothing more to
+            // read(-1)
+            int len;
+            int total = 0;
+            int lastUpdated = 0;
+            int percent = 0;
+
+            while ((len = inStream.read(buff)) != -1) {
+                total += len;
+                percent = (int) (total * 100 / fileSize);
+                if (lastUpdated != percent) {
+                    if (task.isCancelled()) {
+                        outStream.close();
+                        inStream.close();
+                        file.delete();
+                        throw new CancelledTaskException();
+                    }
+                    task.setProgress(percent);
+                    lastUpdated = percent;
+                }
+
+                outStream.write(buff, 0, len);
+            }
+
+            task.setProgress(100);
+
+            // clean up
+            outStream.flush();
+            outStream.close();
+            inStream.close();
+
+            Log.i(TAG, "download completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+        } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+            isLoggedin = false;
+            throw new UnauthorizedException();
+        } else {
+            Log.e(TAG, "Unexpected status code: " + statusCode);
+            throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+        }
+
+    }
+
+    public void uploadFileSmart(MyAsyncTask<Object, Integer, Boolean> task, Uri selectedFile, String parentId)
+            throws IOException, NoInternetConnectionException, NotLoggedInException, UnexpectedStatusCodeException,
+            FileNotFoundException, UnauthorizedException {
+
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
+
+        if (!isLoggedin) {
+            throw new NotLoggedInException();
+        }
+
+        InputStream fis = context.getContentResolver().openInputStream(selectedFile);
+
+        // TODO: do get filename and filesize in a functions.
+        String fileName = "";
+        long fileSize = 0;
+        String scheme = selectedFile.getScheme();
+        if (scheme.equals("file")) {
+            File file = new File(selectedFile.getPath());
+            fileName = file.getName();
+            fileSize = file.length();
+        } else if (scheme.equals("content")) {
+
+            String[] proj = {"_data"};
+            Cursor cursor = context.getContentResolver().query(selectedFile, proj, null, null, null);
+            if (cursor.moveToFirst()) {
+                File file = new File(cursor.getString(0));
+                fileName = file.getName();
+                fileSize = file.length();
+            } else {
+                throw new IOException("Can't retrieve path from uri: " + selectedFile.toString());
+            }
+        }
 
 		/*
-		if (fileName.length() == 0 || fileSize == 0) {
+        if (fileName.length() == 0 || fileSize == 0) {
 			throw new IOException("File name is empty or file size is 0.");
 		}
 		*/
 
-		String path = "/stacksync/files";
-		List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-		params.add(new Pair<String, String>("file_name", fileName));
-		params.add(new Pair<String, String>("overwrite", Boolean.TRUE.toString()));
+        String path = "/stacksync/files";
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        params.add(new Pair<String, String>("file_name", fileName));
+        params.add(new Pair<String, String>("overwrite", Boolean.TRUE.toString()));
 
-		if (parentId != null) {
-			params.add(new Pair<String, String>("parent", parentId));
-		}
+        if (parentId != null) {
+            params.add(new Pair<String, String>("parent", parentId));
+        }
 
-		String urlString = Utils.buildUrl(storageURL, path, params);
+        String urlString = Utils.buildUrl(storageURL, path, params);
 
-		URL url = new URL(urlString);
+        URL url = new URL(urlString);
 
-		long startTime = System.currentTimeMillis();
-		Log.i(TAG, "Uploading file: " + urlString);
+        long startTime = System.currentTimeMillis();
+        Log.i(TAG, "Uploading file: " + urlString);
 
-		// Open a connection to that URL.
-		HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
+        // Open a connection to that URL.
+        HttpsURLConnection ucon = (HttpsURLConnection) url.openConnection();
 
-		ucon.setRequestMethod("PUT");
-		ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, authToken);
-		ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "True");
+        ucon.setRequestMethod("PUT");
+        ucon.addRequestProperty(FilesConstants.X_AUTH_TOKEN, authToken);
+        ucon.addRequestProperty(FilesConstants.STACKSYNC_API, "True");
 
-		// this timeout affects how long it takes for the app to realize
-		// there's a connection problem
-		ucon.setReadTimeout(connectionTimeout);
-		
-		ucon.setDoOutput(true);
-		
-		ucon.connect();
+        // this timeout affects how long it takes for the app to realize
+        // there's a connection problem
+        ucon.setReadTimeout(connectionTimeout);
 
-		OutputStream os = ucon.getOutputStream();
+        ucon.setDoOutput(true);
 
-		BufferedInputStream bfis = new BufferedInputStream(fis);
-		byte[] buffer = new byte[1024];
-		int len;
-		int total = 0;
-		int lastUpdated = 0;
-		int percent = 0;
+        ucon.connect();
 
-		while ((len = bfis.read(buffer)) > 0) {
-			total += len;
-			percent = (int) (total * 100 / fileSize);
-			if (lastUpdated != percent) {
-				task.setProgress(percent);
-				lastUpdated = percent;
-			}
+        OutputStream os = ucon.getOutputStream();
 
-			os.write(buffer, 0, len);
-		}
+        BufferedInputStream bfis = new BufferedInputStream(fis);
+        byte[] buffer = new byte[1024];
+        int len;
+        int total = 0;
+        int lastUpdated = 0;
+        int percent = 0;
 
-		task.setProgress(100);
+        while ((len = bfis.read(buffer)) > 0) {
+            total += len;
+            percent = (int) (total * 100 / fileSize);
+            if (lastUpdated != percent) {
+                task.setProgress(percent);
+                lastUpdated = percent;
+            }
 
-		// clean up
-		os.flush();
-		os.close();
-		bfis.close();
+            os.write(buffer, 0, len);
+        }
 
-		int statusCode = ucon.getResponseCode();
+        task.setProgress(100);
 
-		if (statusCode >= 200 && statusCode < 300) {
-			Log.i(TAG, "upload completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+        // clean up
+        os.flush();
+        os.close();
+        bfis.close();
 
-		} else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-			isLoggedin = false;
-			throw new UnauthorizedException();
-		} else {
-			Log.e(TAG, "Unexpected status code: " + statusCode);
-			throw new UnexpectedStatusCodeException("Status code: " + statusCode);
-		}
-	}
+        int statusCode = ucon.getResponseCode();
 
-	public void createFolder(String folderName, String parent) throws NoInternetConnectionException,
-			NotLoggedInException, UnexpectedStatusCodeException, ClientProtocolException, IOException,
-			UnauthorizedException {
+        if (statusCode >= 200 && statusCode < 300) {
+            Log.i(TAG, "upload completed in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
 
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
+        } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+            isLoggedin = false;
+            throw new UnauthorizedException();
+        } else {
+            Log.e(TAG, "Unexpected status code: " + statusCode);
+            throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+        }
+    }
 
-		if (!isLoggedin) {
-			throw new NotLoggedInException();
-		}
+    public void createFolder(String folderName, String parent) throws NoInternetConnectionException,
+            NotLoggedInException, UnexpectedStatusCodeException, ClientProtocolException, IOException,
+            UnauthorizedException {
 
-		HttpPost method = null;
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
 
-		long startTime = System.currentTimeMillis();
+        if (!isLoggedin) {
+            throw new NotLoggedInException();
+        }
 
-		String path = "/stacksync/files";
-		List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-		params.add(new Pair<String, String>("folder_name", folderName));
-		if (parent != null) {
-			params.add(new Pair<String, String>("parent", parent));
-		}
+        HttpPost method = null;
 
-		String url = Utils.buildUrl(storageURL, path, params);
+        long startTime = System.currentTimeMillis();
 
-		method = new HttpPost(url);
-		method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
-		method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
-		method.setHeader(FilesConstants.STACKSYNC_API, "True");
+        String path = "/stacksync/files";
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        params.add(new Pair<String, String>("folder_name", folderName));
+        if (parent != null) {
+            params.add(new Pair<String, String>("parent", parent));
+        }
 
-		try {
-			FilesResponse response = new FilesResponse(client.execute(method));
+        String url = Utils.buildUrl(storageURL, path, params);
 
-			int statusCode = response.getStatusCode();
+        method = new HttpPost(url);
+        method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
+        method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
+        method.setHeader(FilesConstants.STACKSYNC_API, "True");
 
-			if (statusCode >= 200 && statusCode < 300) {
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
 
-				Log.i(TAG, "Folder created in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
-			} else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-				isLoggedin = false;
-				throw new UnauthorizedException();
-			} else {
-				throw new UnexpectedStatusCodeException("Status code: " + statusCode);
-			}
+            int statusCode = response.getStatusCode();
 
-		} finally {
-			if (method != null)
-				method.abort();
-		}
-	}
+            if (statusCode >= 200 && statusCode < 300) {
 
-	public void deleteFile(String fileId) throws NoInternetConnectionException, NotLoggedInException,
-			ClientProtocolException, IOException, UnexpectedStatusCodeException, UnauthorizedException {
+                Log.i(TAG, "Folder created in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedin = false;
+                throw new UnauthorizedException();
+            } else {
+                throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+            }
 
-		if (!Utils.isNetworkConnected(context)) {
-			throw new NoInternetConnectionException();
-		}
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+    }
 
-		if (!isLoggedin) {
-			throw new NotLoggedInException();
-		}
+    public void deleteFile(String fileId) throws NoInternetConnectionException, NotLoggedInException,
+            ClientProtocolException, IOException, UnexpectedStatusCodeException, UnauthorizedException {
 
-		HttpDelete method = null;
+        if (!Utils.isNetworkConnected(context)) {
+            throw new NoInternetConnectionException();
+        }
 
-		long startTime = System.currentTimeMillis();
+        if (!isLoggedin) {
+            throw new NotLoggedInException();
+        }
 
-		String path = "/stacksync/files";
-		List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
-		params.add(new Pair<String, String>("file_id", fileId));
+        HttpDelete method = null;
 
-		String url = Utils.buildUrl(storageURL, path, params);
+        long startTime = System.currentTimeMillis();
 
-		method = new HttpDelete(url);
-		method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
-		method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
-		method.setHeader(FilesConstants.STACKSYNC_API, "True");
+        String path = "/stacksync/files";
+        List<Pair<String, String>> params = new ArrayList<Pair<String, String>>();
+        params.add(new Pair<String, String>("file_id", fileId));
 
-		try {
-			FilesResponse response = new FilesResponse(client.execute(method));
-			int statusCode = response.getStatusCode();
+        String url = Utils.buildUrl(storageURL, path, params);
 
-			if (statusCode >= 200 && statusCode < 300) {
+        method = new HttpDelete(url);
+        method.getParams().setIntParameter("http.socket.timeout", connectionTimeout);
+        method.setHeader(FilesConstants.X_AUTH_TOKEN, authToken);
+        method.setHeader(FilesConstants.STACKSYNC_API, "True");
 
-				Log.i(TAG, "File deleted in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
-			} else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-				isLoggedin = false;
-				throw new UnauthorizedException();
-			} else {
-				throw new UnexpectedStatusCodeException("Status code: " + statusCode);
-			}
+        try {
+            FilesResponse response = new FilesResponse(client.execute(method));
+            int statusCode = response.getStatusCode();
 
-		} finally {
-			if (method != null)
-				method.abort();
-		}
-	}
+            if (statusCode >= 200 && statusCode < 300) {
 
-	/**
-	 * always verify the host - dont check for certificate
-	 */
-	final static HostnameVerifier DO_NOT_VERIFY = new HostnameVerifier() {
-		public boolean verify(String hostname, SSLSession session) {
-			return true;
-		}
-	};
+                Log.i(TAG, "File deleted in " + ((System.currentTimeMillis() - startTime) / 1000) + " sec");
+            } else if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+                isLoggedin = false;
+                throw new UnauthorizedException();
+            } else {
+                throw new UnexpectedStatusCodeException("Status code: " + statusCode);
+            }
+
+        } finally {
+            if (method != null)
+                method.abort();
+        }
+    }
+
+    /**
+     * always verify the host - dont check for certificate
+     */
+    final static HostnameVerifier DO_NOT_VERIFY = new HostnameVerifier() {
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    };
 
 }
