@@ -18,19 +18,28 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="15dp"
             android:src="@drawable/stacksync_logo_new" />
-        
+
+        <Spinner
+            android:id="@+id/hostSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/logo"
+            android:layout_marginTop="20dp"
+            android:layout_marginLeft="15dp"
+            android:entries="@array/servers_array"
+            />
+
         <EditText
             android:id="@+id/loginHost"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_below="@+id/logo"
+            android:layout_toRightOf="@+id/hostSpinner"
             android:layout_centerHorizontal="true"
-            android:layout_marginLeft="15dp"
+            android:layout_marginLeft="10dp"
             android:layout_marginRight="15dp"
             android:layout_marginTop="20dp"
             android:hint="Auth URL"
-            android:text="https://www.k.nefeles.es:5000/v3"
-            android:visibility="invisible"
             >
             <requestFocus />
         </EditText>
