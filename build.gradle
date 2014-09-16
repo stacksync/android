@@ -33,4 +33,27 @@ android {
         minSdkVersion 7
         targetSdkVersion 19
     }
+
+    signingConfigs {
+        playstore {
+            keyAlias 'stacksync'
+            keyPassword ''
+            storeFile file('')
+            storePassword ''
+        }
+    }
+
+    buildTypes {
+        release {
+            debuggable false
+            jniDebugBuild false
+            zipAlign true
+            signingConfig signingConfigs.playstore
+        }
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+    }
 }
+
