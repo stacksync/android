@@ -55,7 +55,6 @@
         android:layout_height="wrap_content"
         android:text="Send"
         android:id="@+id/btnSend"
-        android:width="50dp"
         android:layout_alignTop="@+id/share_textEmail"
         android:layout_toRightOf="@+id/share_textEmail"
         android:layout_marginLeft="10dp" />
