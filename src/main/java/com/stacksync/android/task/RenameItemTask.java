@@ -56,12 +56,13 @@ public class RenameItemTask extends AsyncTask<String, Integer, Boolean> {
     protected Boolean doInBackground(String... params) {
         String itemName = params[0];
         String itemId = params[1];
+        String parentId = params[2];
         boolean isFolder = Boolean.parseBoolean(params[2]);
         boolean result = false;
 
         StacksyncClient client = StacksyncApp.getClient(context);
         try {
-            client.rename(itemId, itemName, isFolder);
+            client.rename(itemId, itemName, parentId, isFolder);
             result = true;
             if (isFolder) {
                 message = "Folder successfully renamed";

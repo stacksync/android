@@ -663,10 +663,11 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
         alert.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
                 String newItemName = input.getText().toString();
+                String parentId = getCurrentFileId();
 
                 if (validateFilename(newItemName)) {
                     AsyncTask<String, Integer, Boolean> renameItem = new RenameItemTask(MainActivity.this);
-                    renameItem.execute(newItemName, itemId, Boolean.toString(isFolder));
+                    renameItem.execute(newItemName, itemId, parentId, Boolean.toString(isFolder));
 
                 } else {
                     Toast.makeText(MainActivity.this, "Invalid folder name", Toast.LENGTH_LONG).show();

@@ -485,7 +485,7 @@ public class StacksyncClient {
             throw new UnexpectedStatusCodeException("Status code: " + statusCode);
         }
     }
-    public void rename(String itemId, String itemName, boolean isFolder) throws NotLoggedInException, NoInternetConnectionException, JSONException, IOException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, UnauthorizedException, UnexpectedStatusCodeException {
+    public void rename(String itemId, String itemName, String parentId, boolean isFolder) throws NotLoggedInException, NoInternetConnectionException, JSONException, IOException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException, UnauthorizedException, UnexpectedStatusCodeException {
         if (!Utils.isNetworkConnected(context)) {
             throw new NoInternetConnectionException();
         }
@@ -506,6 +506,7 @@ public class StacksyncClient {
 
         JSONObject jsonBody = new JSONObject();
         jsonBody.put("name", itemName);
+        jsonBody.put("parent", parentId);
 
         String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
 
