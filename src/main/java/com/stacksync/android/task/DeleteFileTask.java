@@ -56,13 +56,14 @@ public class DeleteFileTask extends AsyncTask<String, Integer, Boolean> {
 	protected Boolean doInBackground(String... params) {
 
 		String fileId = params[0];
+        String type = params[1];
 
 		boolean result = false;
 
 		StacksyncClient client = StacksyncApp.getClient(context);
 
 		try {
-			client.deleteFile(fileId);
+			client.deleteFile(fileId, type);
 			result = true;
 			message = "Deleted successfully";
 		} catch (ClientProtocolException e) {

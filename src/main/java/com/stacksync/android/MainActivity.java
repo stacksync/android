@@ -337,7 +337,7 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
                     return true;
 
                 case MENU_DELETE:
-                    onDeleteFileClick(fileId);
+                    onDeleteFileClick(fileId, isFolder);
                     return true;
 
                 case MENU_SENTTO:
@@ -633,10 +633,17 @@ public class MainActivity extends SherlockActivity implements SearchView.OnQuery
 
     }
 
-    private void onDeleteFileClick(String fileId) {
+    private void onDeleteFileClick(String fileId, boolean isFolder) {
 
         AsyncTask<String, Integer, Boolean> deleteFile = new DeleteFileTask(this);
-        deleteFile.execute(fileId);
+
+        String type;
+        if (isFolder)
+            type = "folder";
+        else
+            type = "file";
+
+        deleteFile.execute(fileId, type);
     }
 
     private void onSentToClick(String fileId, String version, String filename, String mimetype) {

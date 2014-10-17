@@ -595,7 +595,7 @@ public class StacksyncClient {
         }
     }
 
-    public void deleteFile(String fileId) throws NoInternetConnectionException, NotLoggedInException,
+    public void deleteFile(String fileId, String type) throws NoInternetConnectionException, NotLoggedInException,
             IOException, UnexpectedStatusCodeException, UnauthorizedException, OAuthCommunicationException, OAuthExpectationFailedException, OAuthMessageSignerException {
 
         if (!Utils.isNetworkConnected(context)) {
@@ -606,11 +606,11 @@ public class StacksyncClient {
             throw new NotLoggedInException();
         }
 
-        HttpDelete method = null;
+        HttpDelete method;
 
         long startTime = System.currentTimeMillis();
 
-        String path = String.format("/file/%s", fileId.toString());
+        String path = String.format("/%s/%s", type, fileId.toString());
 
         String url = Utils.buildUrl(apiUrl, path, new ArrayList<Pair<String, String>>());
 
